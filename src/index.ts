@@ -1,22 +1,15 @@
-import { createServer } from 'http';
+import express from 'express';
 
-const PORT = 3000;
+const app = express();
 
-const server = createServer((req, res) => {
-    // set header content type
-    res.setHeader('Content-Type', 'application/json');
+const PORT = process.env.PORT || 3000;
 
-    // handling the request and response
-    if (req.url === '/') {
-        res.statusCode = 200;
-        res.end(JSON.stringify({ message: 'Welcome to our API' }));
-    } else {
-        res.statusCode = 404;
-        res.end(JSON.stringify({ message: 'Page not found' }));
-    }
-});
+// Connect to MongoDB
 
-// Add this section at the bottom:
-server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+app.get('/',(req,res)=>{
+    res.status(200).json({message: 'Hello World'});
+})
+
+app.listen(PORT,()=>{
+    console.log(`Server is running on port http://localhost:${PORT}`);
+})
