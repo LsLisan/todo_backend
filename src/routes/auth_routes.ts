@@ -17,9 +17,13 @@ const router = Router();
  *           schema:
  *             type: object
  *             required:
+ *               - username
  *               - email
  *               - password
  *             properties:
+ *               username:
+ *                 type: string
+ *                 example: johndoe
  *               email:
  *                 type: string
  *                 format: email
@@ -39,10 +43,28 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: User registered successfully
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                     username:
+ *                       type: string
+ *                       example: johndoe
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *       400:
  *         description: Bad request (validation errors)
  *       409:
- *         description: User already exists
+ *         description: Email already in use
  */
 router.post("/register", registerUser);
 
@@ -82,6 +104,18 @@ router.post("/register", registerUser);
  *                 token:
  *                   type: string
  *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                     username:
+ *                       type: string
+ *                       example: johndoe
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
  *       401:
  *         description: Invalid credentials
  */

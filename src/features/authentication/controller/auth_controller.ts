@@ -24,6 +24,7 @@ export async function registerUser(req: Request, res: Response) {
 
         const passwordHash = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: passwordHash });
+        await newUser.save();
         
         const token = jwt.sign({
             userId: newUser._id,
