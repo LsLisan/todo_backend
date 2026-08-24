@@ -1,22 +1,35 @@
-import { createServer } from 'http';
+import express from 'express';
+import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './core/config/swagger.js';
+import authRoutes from './routes/auth_routes.js';
+import morgan from 'morgan';
+import { connectDB } from './core/config/database.js';
+import cors from 'cors';
 
-const PORT = 3000;
+dotenv.config();
 
-const server = createServer((req, res) => {
-    // set header content type
-    res.setHeader('Content-Type', 'application/json');
+const app = express();
 
-    // handling the request and response
-    if (req.url === '/') {
-        res.statusCode = 200;
-        res.end(JSON.stringify({ message: 'Welcome to our API' }));
-    } else {
-        res.statusCode = 404;
-        res.end(JSON.stringify({ message: 'Page not found' }));
-    }
-});
+app.use(express.json());
 
-// Add this section at the bottom:
-server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+app.use(cors());
+
+app.use(morgan('dev'));
+
+const PORT = process.env.PORT || 3000;
+
+app.use('/docs',swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+app.use('/api/auth', authRoutes);
+
+connectDB()
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server is running on port http://localhost:${PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.error('Server startup failed:', error);
+        process.exit(1);
+    });
