@@ -10,6 +10,7 @@ const router = Router();
  *     summary: Register a new user
  *     tags:
  *       - Authentication
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -43,24 +44,16 @@ const router = Router();
  *                 message:
  *                   type: string
  *                   example: User registered successfully
- *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       example: 64f1a2b3c4d5e6f7a8b9c0d1
- *                     username:
- *                       type: string
- *                       example: johndoe
- *                     email:
- *                       type: string
- *                       example: user@example.com
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
+ *                 token:
+ *                   type: string
+ *                   description: JWT bearer token
+ *                 id:
+ *                   type: string
+ *                   example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 role:
+ *                   type: string
+ *                   enum: [USER, ADMIN]
+ *                   example: USER
  *       400:
  *         description: Bad request (validation errors)
  *       409:
@@ -75,6 +68,7 @@ router.post("/register", registerUser);
  *     summary: Log in an existing user
  *     tags:
  *       - Authentication
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -104,18 +98,13 @@ router.post("/register", registerUser);
  *                 token:
  *                   type: string
  *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
- *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       example: 64f1a2b3c4d5e6f7a8b9c0d1
- *                     username:
- *                       type: string
- *                       example: johndoe
- *                     email:
- *                       type: string
- *                       example: user@example.com
+ *                 id:
+ *                   type: string
+ *                   example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 role:
+ *                   type: string
+ *                   enum: [USER, ADMIN]
+ *                   example: USER
  *       401:
  *         description: Invalid credentials
  */
