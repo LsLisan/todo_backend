@@ -29,13 +29,15 @@ export async function registerUser(req: Request, res: Response) {
         const token = jwt.sign({
             userId: newUser._id,
             username: newUser.username,
-            email: newUser.email
+            email: newUser.email,
+            role: newUser.role,
         }, process.env.JWT_SECRET as string, { expiresIn: '15d' })
 
         return res.status(201).json({
              message: "User registered successfully",
                 token: token,
                 id: newUser._id,
+                role: newUser.role,
 
         });
     }catch (error) {
@@ -64,10 +66,12 @@ export async function loginUser(req: Request, res: Response) {
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid email or password" });
         }
+        const role = user.role ?? 'USER';
         const token = jwt.sign({
             userId: user._id,
             username: user.username,
-            email: user.email
+            email: user.email,
+            role,
         }, process.env.JWT_SECRET as string, { 
             expiresIn: '15d' 
         })
@@ -75,6 +79,7 @@ export async function loginUser(req: Request, res: Response) {
             message: "User logged in successfully",
             token: token,
             id: user._id,
+            role,
         });
 
     }catch (error) {

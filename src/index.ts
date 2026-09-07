@@ -6,6 +6,7 @@ import authRoutes from './routes/auth_routes.js';
 import morgan from 'morgan';
 import { connectDB } from './core/config/database.js';
 import cors from 'cors';
+import profileRoutes from './routes/profile_routes.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ const PORT = process.env.PORT || 3000;
 app.use('/docs',swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 connectDB()
     .then(() => {
