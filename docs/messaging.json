@@ -1,0 +1,137 @@
+{
+  "name": "Todo Backend Messaging Socket.IO API",
+  "version": "1.0.0",
+  "transport": "socket.io",
+  "connection": {
+    "url": "http://localhost:3000",
+    "auth": {
+      "token": "{{jwt_token}}"
+    },
+    "notes": [
+      "Get jwt_token from POST /api/auth/login or POST /api/auth/register.",
+      "In Postman, create a Socket.IO request, set the URL, then add token in the Socket.IO auth fields.",
+      "Every command response is a Socket.IO acknowledgement object.",
+      "Failures also arrive as the messaging:error event."
+    ]
+  },
+  "rooms": {
+    "normal": {
+      "description": "Private one-to-one room.",
+      "rules": ["The current user plus exactly one participant.", "Only the two participants may join.", "Cannot be left."]
+    },
+    "group": {
+      "description": "Room with two or more participants.",
+      "rules": ["The current user plus at least one participant.", "The name is optional.", "Authenticated users may join when they know the roomId."]
+    }
+  },
+  "events": [
+    {
+      "name": "room:create",
+      "direction": "client-to-server",
+      "payload": {
+        "type": "normal",
+        "participantIds": ["{{other_user_id}}"]
+      },
+      "acknowledgement": { "ok": true, "room": "room object" }
+    },
+    {
+      "name": "room:create",
+      "direction": "client-to-server",
+      "payload": {
+        "type": "group",
+        "name": "Project Team",
+        "participantIds": ["{{user_id_2}}", "{{user_id_3}}"]
+      },
+      "acknowledgement": { "ok": true, "room": "room object" }
+    },
+    {
+      "name": "room:join",
+      "direction": "client-to-server",
+      "payload": { "roomId": "{{room_id}}" },
+      "acknowledgement": { "ok": true, "room": "room object" }
+    },
+    {
+      "name": "room:list",
+      "direction": "client-to-server",
+      "payload": {},
+      "acknowledgement": { "ok": true, "rooms": ["room objects"] }
+    },
+    {
+      "name": "room:leave",
+      "direction": "client-to-server",
+      "payload": { "roomId": "{{group_room_id}}" },
+      "acknowledgement": { "ok": true }
+    },
+    {
+      "name": "message:send",
+      "direction": "client-to-server",
+      "description": "Text message",
+      "payload": { "roomId": "{{room_id}}", "body": "Hello" },
+      "acknowledgement": { "ok": true, "message": "message object" }
+    },
+    {
+      "name": "message:send",
+      "direction": "client-to-server",
+      "description": "Image-only message, maximum 10 images",
+      "payload": {
+        "roomId": "{{room_id}}",
+        "images": [
+          "https://cdn.example.com/photo-1.jpg",
+          "https://cdn.example.com/photo-2.png"
+        ]
+      },
+      "acknowledgement": { "ok": true, "message": "message object with type images" }
+    },
+    {
+      "name": "message:send",
+      "direction": "client-to-server",
+      "description": "Text plus images",
+      "payload": {
+        "roomId": "{{room_id}}",
+        "body": "Look at these",
+        "images": ["https://cdn.example.com/photo.jpg"]
+      },
+      "acknowledgement": { "ok": true, "message": "message object with type images+text" }
+    },
+    {
+      "name": "message:history",
+      "direction": "client-to-server",
+      "payload": { "roomId": "{{room_id}}", "limit": 50 },
+      "acknowledgement": { "ok": true, "messages": ["message objects"] }
+    },
+    {
+      "name": "typing:start",
+      "direction": "client-to-server",
+      "payload": { "roomId": "{{room_id}}" }
+    },
+    {
+      "name": "typing:stop",
+      "direction": "client-to-server",
+      "payload": { "roomId": "{{room_id}}" }
+    }
+  ],
+  "messageObject": {
+    "id": "message_id",
+    "roomId": "room_id",
+    "senderId": "user_id",
+    "type": "text | images | images+text",
+    "body": "optional text",
+    "images": ["image URL or data URL"],
+    "createdAt": "ISO date",
+    "updatedAt": "ISO date"
+  },
+  "serverEvents": [
+    "room:created",
+    "room:member_joined",
+    "room:member_left",
+    "message:new",
+    "typing:start",
+    "typing:stop",
+    "messaging:error"
+  ],
+  "limits": {
+    "maxImagesPerMessage": 10,
+    "maxTextCharacters": 5000,
+    "historyLimit": { "minimum": 1, "maximum": 100, "default": 50 }
+  }
+}
