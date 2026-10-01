@@ -36,6 +36,7 @@
     "mongodb": "^7.6.0",
     "mongoose": "^9.9.3",
     "morgan": "^1.11.0",
+    "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   }

@@ -7,10 +7,20 @@ import morgan from 'morgan';
 import { connectDB } from './core/config/database.js';
 import cors from 'cors';
 import profileRoutes from './routes/profile_routes.js';
+import todoRoutes from './routes/todo_routes.js';
+import { createServer } from 'node:http';
+import { Server } from 'socket.io';
+import { registerMessagingSocket } from './features/mesaging/socket/messaging_socket.js';
 
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: { origin: process.env.CLIENT_ORIGIN?.split(',').map((origin) => origin.trim()) ?? '*' },
+});
+
+registerMessagingSocket(io);
 
 app.use(express.json());
 
@@ -24,10 +34,11 @@ app.use('/docs',swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/todos', todoRoutes);
 
 connectDB()
     .then(() => {
-        app.listen(PORT, () => {
+        httpServer.listen(PORT, () => {
             console.log(`Server is running on port http://localhost:${PORT}`);
         });
     })
