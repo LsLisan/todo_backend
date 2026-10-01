@@ -83,6 +83,19 @@ async function getMemberRoom(socket: Socket, value: unknown) {
     return ChatRoom.findOne({ _id: value, participants: user.userId });
 }
 
+async function emitToCurrentRoomMembers(io: Server, room: { _id: Types.ObjectId; participants: Types.ObjectId[] }, event: string, payload: unknown, excludeSocketId?: string) {
+    const allowedUserIds = new Set(room.participants.map((participant) => participant.toString()));
+    const sockets = await io.in(room._id.toString()).fetchSockets();
+    for (const memberSocket of sockets) {
+        const member = memberSocket.data.user as SocketUser | undefined;
+        if (!member || !allowedUserIds.has(member.userId)) {
+            await memberSocket.leave(room._id.toString());
+        } else if (memberSocket.id !== excludeSocketId) {
+            memberSocket.emit(event, payload);
+        }
+    }
+}
+
 export function registerMessagingSocket(io: Server) {
     io.use(async (socket, next) => {
         try {
@@ -151,6 +164,7 @@ export function registerMessagingSocket(io: Server) {
                 const room = await ChatRoom.findById(payload.roomId);
                 if (!room) return error(socket, "Room not found", ack);
                 const alreadyMember = room.participants.some((participant) => participant.toString() === user.userId);
+                    if (room.access === "invite" && !alreadyMember) return error(socket, "You are not invited to this room", ack);
                 if (room.type === "normal" && !alreadyMember) return error(socket, "You cannot join this normal room", ack);
                 if (!alreadyMember) {
                     room.participants.push(new Types.ObjectId(user.userId));
@@ -198,7 +212,7 @@ export function registerMessagingSocket(io: Server) {
             const type: MessageType = body && images.length > 0 ? "images+text" : images.length > 0 ? "images" : "text";
             const message = await Message.create({ room: room._id, sender: user.userId, type, body, images });
                 const result = publicMessage(message);
-                io.to(room._id.toString()).emit("message:new", result);
+                await emitToCurrentRoomMembers(io, room, "message:new", result);
                 reply(ack, { ok: true, message: result });
             } catch {
                 error(socket, "Could not send message", ack);
@@ -215,12 +229,12 @@ export function registerMessagingSocket(io: Server) {
 
         socket.on("typing:start", async (payload: { roomId?: string }) => {
             const room = await getMemberRoom(socket, payload?.roomId);
-            if (room) socket.to(room._id.toString()).emit("typing:start", { roomId: room._id.toString(), userId: user.userId, username: user.username });
+            if (room) await emitToCurrentRoomMembers(io, room, "typing:start", { roomId: room._id.toString(), userId: user.userId, username: user.username }, socket.id);
         });
 
         socket.on("typing:stop", async (payload: { roomId?: string }) => {
             const room = await getMemberRoom(socket, payload?.roomId);
-            if (room) socket.to(room._id.toString()).emit("typing:stop", { roomId: room._id.toString(), userId: user.userId });
+            if (room) await emitToCurrentRoomMembers(io, room, "typing:stop", { roomId: room._id.toString(), userId: user.userId }, socket.id);
         });
     });
 }

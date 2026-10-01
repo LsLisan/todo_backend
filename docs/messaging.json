@@ -1,137 +1,309 @@
 {
-  "name": "Todo Backend Messaging Socket.IO API",
-  "version": "1.0.0",
-  "transport": "socket.io",
-  "connection": {
-    "url": "http://localhost:3000",
-    "auth": {
-      "token": "{{jwt_token}}"
-    },
-    "notes": [
-      "Get jwt_token from POST /api/auth/login or POST /api/auth/register.",
-      "In Postman, create a Socket.IO request, set the URL, then add token in the Socket.IO auth fields.",
-      "Every command response is a Socket.IO acknowledgement object.",
-      "Failures also arrive as the messaging:error event."
-    ]
+  "info": {
+    "name": "Todo Backend Messaging Socket.IO API",
+    "description": "Socket.IO events collection for testing the Todo Backend Messaging API.\n\nConnection Details:\n- URL: http://localhost:3000\n- Auth: Handshake auth object `{ \"token\": \"{{jwt_token}}\" }`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "rooms": {
-    "normal": {
-      "description": "Private one-to-one room.",
-      "rules": ["The current user plus exactly one participant.", "Only the two participants may join.", "Cannot be left."]
-    },
-    "group": {
-      "description": "Room with two or more participants.",
-      "rules": ["The current user plus at least one participant.", "The name is optional.", "Authenticated users may join when they know the roomId."]
-    }
-  },
-  "events": [
+  "variable": [
     {
-      "name": "room:create",
-      "direction": "client-to-server",
-      "payload": {
-        "type": "normal",
-        "participantIds": ["{{other_user_id}}"]
-      },
-      "acknowledgement": { "ok": true, "room": "room object" }
+      "key": "jwt_token",
+      "value": "YOUR_JWT_TOKEN_HERE",
+      "type": "string"
     },
     {
-      "name": "room:create",
-      "direction": "client-to-server",
-      "payload": {
-        "type": "group",
-        "name": "Project Team",
-        "participantIds": ["{{user_id_2}}", "{{user_id_3}}"]
-      },
-      "acknowledgement": { "ok": true, "room": "room object" }
+      "key": "room_id",
+      "value": "sample_room_id",
+      "type": "string"
     },
     {
-      "name": "room:join",
-      "direction": "client-to-server",
-      "payload": { "roomId": "{{room_id}}" },
-      "acknowledgement": { "ok": true, "room": "room object" }
+      "key": "group_room_id",
+      "value": "sample_group_room_id",
+      "type": "string"
     },
     {
-      "name": "room:list",
-      "direction": "client-to-server",
-      "payload": {},
-      "acknowledgement": { "ok": true, "rooms": ["room objects"] }
+      "key": "other_user_id",
+      "value": "user_123",
+      "type": "string"
     },
     {
-      "name": "room:leave",
-      "direction": "client-to-server",
-      "payload": { "roomId": "{{group_room_id}}" },
-      "acknowledgement": { "ok": true }
+      "key": "user_id_2",
+      "value": "user_456",
+      "type": "string"
     },
     {
-      "name": "message:send",
-      "direction": "client-to-server",
-      "description": "Text message",
-      "payload": { "roomId": "{{room_id}}", "body": "Hello" },
-      "acknowledgement": { "ok": true, "message": "message object" }
-    },
-    {
-      "name": "message:send",
-      "direction": "client-to-server",
-      "description": "Image-only message, maximum 10 images",
-      "payload": {
-        "roomId": "{{room_id}}",
-        "images": [
-          "https://cdn.example.com/photo-1.jpg",
-          "https://cdn.example.com/photo-2.png"
-        ]
-      },
-      "acknowledgement": { "ok": true, "message": "message object with type images" }
-    },
-    {
-      "name": "message:send",
-      "direction": "client-to-server",
-      "description": "Text plus images",
-      "payload": {
-        "roomId": "{{room_id}}",
-        "body": "Look at these",
-        "images": ["https://cdn.example.com/photo.jpg"]
-      },
-      "acknowledgement": { "ok": true, "message": "message object with type images+text" }
-    },
-    {
-      "name": "message:history",
-      "direction": "client-to-server",
-      "payload": { "roomId": "{{room_id}}", "limit": 50 },
-      "acknowledgement": { "ok": true, "messages": ["message objects"] }
-    },
-    {
-      "name": "typing:start",
-      "direction": "client-to-server",
-      "payload": { "roomId": "{{room_id}}" }
-    },
-    {
-      "name": "typing:stop",
-      "direction": "client-to-server",
-      "payload": { "roomId": "{{room_id}}" }
+      "key": "user_id_3",
+      "value": "user_789",
+      "type": "string"
     }
   ],
-  "messageObject": {
-    "id": "message_id",
-    "roomId": "room_id",
-    "senderId": "user_id",
-    "type": "text | images | images+text",
-    "body": "optional text",
-    "images": ["image URL or data URL"],
-    "createdAt": "ISO date",
-    "updatedAt": "ISO date"
-  },
-  "serverEvents": [
-    "room:created",
-    "room:member_joined",
-    "room:member_left",
-    "message:new",
-    "typing:start",
-    "typing:stop",
-    "messaging:error"
-  ],
-  "limits": {
-    "maxImagesPerMessage": 10,
-    "maxTextCharacters": 5000,
-    "historyLimit": { "minimum": 1, "maximum": 100, "default": 50 }
-  }
+  "item": [
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "room:create (Normal Room)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"room:create\",\n  \"payload\": {\n    \"type\": \"normal\",\n    \"participantIds\": [\"{{other_user_id}}\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Create a private one-to-one room with the current user and one other participant."
+          }
+        },
+        {
+          "name": "room:create (Group Room)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"room:create\",\n  \"payload\": {\n    \"type\": \"group\",\n    \"name\": \"Project Team\",\n    \"participantIds\": [\"{{user_id_2}}\", \"{{user_id_3}}\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Create a group room with multiple participants."
+          }
+        },
+        {
+          "name": "room:join",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"room:join\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Join an existing group room using its roomId."
+          }
+        },
+        {
+          "name": "room:list",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"room:list\",\n  \"payload\": {}\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Retrieve all joined rooms for the authenticated user."
+          }
+        },
+        {
+          "name": "room:leave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"room:leave\",\n  \"payload\": {\n    \"roomId\": \"{{group_room_id}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Leave a group room."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "message:send (Text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"body\": \"Hello\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Send a text-only message (max 5000 characters)."
+          }
+        },
+        {
+          "name": "message:send (Images Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"images\": [\n      \"https://cdn.example.com/photo-1.jpg\",\n      \"https://cdn.example.com/photo-2.png\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Send an image-only message (up to 10 images)."
+          }
+        },
+        {
+          "name": "message:send (Text + Images)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"body\": \"Look at these\",\n    \"images\": [\n      \"https://cdn.example.com/photo.jpg\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Send a combined text and images message."
+          }
+        },
+        {
+          "name": "message:history",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"message:history\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"limit\": 50\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Fetch historical messages for a room (limit 1-100, default 50)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Typing Indicators",
+      "item": [
+        {
+          "name": "typing:start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"typing:start\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Emit typing start notification."
+          }
+        },
+        {
+          "name": "typing:stop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"typing:stop\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000"
+            },
+            "description": "Emit typing stop notification."
+          }
+        }
+      ]
+    }
+  ]
 }
