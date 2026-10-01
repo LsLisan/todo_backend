@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Todo Backend API",
-    "description": "Requests for the Todo Backend authentication and profile APIs.",
+    "description": "Authentication, profile, Todo, subtask, and history API requests for the Todo Backend.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -24,6 +24,18 @@
     {
       "key": "token",
       "value": ""
+    },
+    {
+      "key": "todoId",
+      "value": ""
+    },
+    {
+      "key": "subTodoId",
+      "value": ""
+    },
+    {
+      "key": "memberId",
+      "value": ""
     }
   ],
   "item": [
@@ -35,30 +47,17 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
             },
             "description": "Creates a normal user. New users receive the USER role by default."
           },
@@ -70,7 +69,7 @@
                 "exec": [
                   "const response = pm.response.json();",
                   "if (response.token) {",
-                  "    pm.collectionVariables.set('token', response.token);",
+                  "  pm.collectionVariables.set('token', response.token);",
                   "}"
                 ]
               }
@@ -82,30 +81,17 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
             }
           },
           "event": [
@@ -116,7 +102,7 @@
                 "exec": [
                   "const response = pm.response.json();",
                   "if (response.token) {",
-                  "    pm.collectionVariables.set('token', response.token);",
+                  "  pm.collectionVariables.set('token', response.token);",
                   "}"
                 ]
               }
@@ -136,25 +122,297 @@
             "auth": {
               "type": "bearer",
               "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
+                { "key": "token", "value": "{{token}}", "type": "string" }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/profile/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "profile",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "profile", "me"]
             },
             "description": "Returns the authenticated user's id, username, email, role, and timestamps."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Todo",
+      "item": [
+        {
+          "name": "Create Personal Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Plan weekend trip\",\n  \"description\": \"Book tickets and hotel\",\n  \"scope\": \"personal\",\n  \"workItems\": [\"Choose date\", \"Book transport\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.todo && res.todo.id) {",
+                  "  pm.collectionVariables.set('todoId', res.todo.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Group Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Launch project\",\n  \"description\": \"Prepare release tasks\",\n  \"scope\": \"group\",\n  \"memberIds\": [\"{{memberId}}\"],\n  \"workItems\": [\"Finalize scope\", \"Publish release\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos"]
+            }
+          }
+        },
+        {
+          "name": "List My Todos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/todos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos"]
+            }
+          }
+        },
+        {
+          "name": "Get Todo By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}"]
+            }
+          }
+        },
+        {
+          "name": "Add Todo Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{memberId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "members"]
+            }
+          }
+        },
+        {
+          "name": "Set Todo Moderators",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moderatorIds\": [\"{{memberId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/moderators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "moderators"]
+            }
+          }
+        },
+        {
+          "name": "Add Todo Work Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Review launch checklist\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/work-items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "work-items"]
+            }
+          }
+        },
+        {
+          "name": "Create Sub Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Design assets\",\n  \"description\": \"Create launch visuals\",\n  \"memberIds\": [\"{{memberId}}\"],\n  \"workItems\": [\"Draft hero image\", \"Finalize logo\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/subtodos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "subtodos"]
+            },
+            "description": "Create a subtask with member and work-item tracking."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.subTodo && res.subTodo.id) {",
+                  "  pm.collectionVariables.set('subTodoId', res.subTodo.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set Sub Todo Members",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberIds\": [\"{{memberId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/subtodos/{{subTodoId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "subtodos", "{{subTodoId}}", "members"]
+            }
+          }
+        },
+        {
+          "name": "Set Sub Todo Moderators",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moderatorIds\": [\"{{memberId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/subtodos/{{subTodoId}}/moderators",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "subtodos", "{{subTodoId}}", "moderators"]
+            }
+          }
+        },
+        {
+          "name": "Add Sub Todo Work Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Finalize asset list\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/subtodos/{{subTodoId}}/work-items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "subtodos", "{{subTodoId}}", "work-items"]
+            }
+          }
+        },
+        {
+          "name": "Update Todo Work Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/work-items/{{workItemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "work-items", "{{workItemId}}"]
+            }
+          }
+        },
+        {
+          "name": "End Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/{{todoId}}/end",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "{{todoId}}", "end"]
+            },
+            "description": "Marks the todo as ended and stores a durable user-by-user history snapshot."
+          }
+        },
+        {
+          "name": "My Todo History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/todos/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "todos", "history"]
+            },
+            "description": "Returns the authenticated user's ended Todo history." 
           }
         }
       ]

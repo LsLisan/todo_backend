@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Todo Backend Messaging Socket.IO API",
-    "description": "Socket.IO events collection for testing the Todo Backend Messaging API.\n\nConnection Details:\n- URL: http://localhost:3000\n- Auth: Handshake auth object `{ \"token\": \"{{jwt_token}}\" }`",
+    "description": "Socket.IO events collection for the Todo Backend messaging system.\n\nConnection Details:\n- URL: http://localhost:3000\n- Auth: Socket.IO handshake auth `{ \"token\": \"{{jwt_token}}\" }`\n- Todo group rooms and subtask rooms are invite-only; users must be members to join or send messages.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -18,6 +18,11 @@
     {
       "key": "group_room_id",
       "value": "sample_group_room_id",
+      "type": "string"
+    },
+    {
+      "key": "todo_room_id",
+      "value": "sample_todo_room_id",
       "type": "string"
     },
     {
@@ -45,10 +50,7 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
@@ -60,22 +62,19 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Create a private one-to-one room with the current user and one other participant."
+            "description": "Create a private one-to-one room."
           }
         },
         {
-          "name": "room:create (Group Room)",
+          "name": "room:create (Group Room / Todo Room)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"room:create\",\n  \"payload\": {\n    \"type\": \"group\",\n    \"name\": \"Project Team\",\n    \"participantIds\": [\"{{user_id_2}}\", \"{{user_id_3}}\"]\n  }\n}"
+              "raw": "{\n  \"event\": \"room:create\",\n  \"payload\": {\n    \"type\": \"group\",\n    \"name\": \"Project Team\",\n    \"access\": \"invite\",\n    \"participantIds\": [\"{{user_id_2}}\", \"{{user_id_3}}\"]\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -83,7 +82,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Create a group room with multiple participants."
+            "description": "Create a group room or invite-only todo room." 
           }
         },
         {
@@ -91,14 +90,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"room:join\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\"\n  }\n}"
+              "raw": "{\n  \"event\": \"room:join\",\n  \"payload\": {\n    \"roomId\": \"{{group_room_id}}\"\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -106,7 +102,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Join an existing group room using its roomId."
+            "description": "Join an existing group room using its roomId. Invite-only todo rooms reject non-members."
           }
         },
         {
@@ -114,10 +110,7 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
@@ -137,10 +130,7 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
@@ -152,7 +142,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Leave a group room."
+            "description": "Leave a non-private group room or a todo room when you are no longer a member."
           }
         }
       ]
@@ -165,14 +155,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"body\": \"Hello\"\n  }\n}"
+              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{todo_room_id}}\",\n    \"body\": \"Hello team\"\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -180,7 +167,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Send a text-only message (max 5000 characters)."
+            "description": "Send a text-only message to a todo room."
           }
         },
         {
@@ -188,14 +175,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"images\": [\n      \"https://cdn.example.com/photo-1.jpg\",\n      \"https://cdn.example.com/photo-2.png\"\n    ]\n  }\n}"
+              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{todo_room_id}}\",\n    \"images\": [\n      \"https://cdn.example.com/photo-1.jpg\",\n      \"https://cdn.example.com/photo-2.png\"\n    ]\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -203,7 +187,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Send an image-only message (up to 10 images)."
+            "description": "Send an image-only message (max 10 images)."
           }
         },
         {
@@ -211,14 +195,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"body\": \"Look at these\",\n    \"images\": [\n      \"https://cdn.example.com/photo.jpg\"\n    ]\n  }\n}"
+              "raw": "{\n  \"event\": \"message:send\",\n  \"payload\": {\n    \"roomId\": \"{{todo_room_id}}\",\n    \"body\": \"Look at these\",\n    \"images\": [\n      \"https://cdn.example.com/photo.jpg\"\n    ]\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -234,14 +215,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"message:history\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\",\n    \"limit\": 50\n  }\n}"
+              "raw": "{\n  \"event\": \"message:history\",\n  \"payload\": {\n    \"roomId\": \"{{todo_room_id}}\",\n    \"limit\": 50\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -249,7 +227,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Fetch historical messages for a room (limit 1-100, default 50)."
+            "description": "Load history for a room. Only members can read it."
           }
         }
       ]
@@ -262,14 +240,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"typing:start\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\"\n  }\n}"
+              "raw": "{\n  \"event\": \"typing:start\",\n  \"payload\": {\n    \"roomId\": \"{{todo_room_id}}\"\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -277,7 +252,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Emit typing start notification."
+            "description": "Announce typing status in a room." 
           }
         },
         {
@@ -285,14 +260,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"typing:stop\",\n  \"payload\": {\n    \"roomId\": \"{{room_id}}\"\n  }\n}"
+              "raw": "{\n  \"event\": \"typing:stop\",\n  \"payload\": {\n    \"roomId\": \"{{todo_room_id}}\"\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:3000",
@@ -300,7 +272,7 @@
               "host": ["localhost"],
               "port": "3000"
             },
-            "description": "Emit typing stop notification."
+            "description": "Clear typing status in a room."
           }
         }
       ]
