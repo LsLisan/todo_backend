@@ -6,6 +6,8 @@ All routes use `Authorization: Bearer <token>` from `/api/auth/login` or `/api/a
 
 - A personal todo is visible only to its creator. The creator manages its details, checklist, and subtasks.
 - A group todo creator can add/remove members and assign todo moderators. Todo moderators can manage the group todo and its subtasks, but cannot remove the creator. Only the creator can delete the parent todo.
+- When the creator ends a todo, an immutable history snapshot is stored separately for each person who participated, including former members, with that person's role(s) and permitted subtask details. History remains available if the live todo is later deleted.
+- Ended todos are read-only and do not appear in the active todo list. The creator can safely retry the end request if history persistence needs to be completed.
 - A subtask has its own member list and moderators. Subtask moderators must be assigned members of that subtask.
 - Group members see each subtask's title and progress. Only the parent todo creator/moderators and members/moderators assigned to that subtask see its description, work items, membership, and chat room ID.
 - Group todos automatically create a group chat. Each subtask automatically creates a separate invite-only group chat. Removed users lose database access; private room broadcasts also re-check membership and evict stale socket connections.
@@ -17,9 +19,11 @@ All routes use `Authorization: Bearer <token>` from `/api/auth/login` or `/api/a
 | --- | --- | --- |
 | `POST` | `/api/todos` | Create a personal or group todo |
 | `GET` | `/api/todos` | List todos where the caller is a member |
+| `GET` | `/api/todos/history` | List the authenticated user's ended-todo history |
 | `GET` | `/api/todos/:todoId` | Get a todo, with subtask details filtered by access |
 | `PATCH` | `/api/todos/:todoId` | Update title/description (creator or todo moderator) |
 | `DELETE` | `/api/todos/:todoId` | Delete todo and its chat rooms (creator only) |
+| `POST` | `/api/todos/:todoId/end` | End a todo and preserve per-participant history (creator only) |
 | `POST` | `/api/todos/:todoId/members` | Add a group member (`{ "userId": "..." }`) |
 | `DELETE` | `/api/todos/:todoId/members/:userId` | Remove a group member and revoke subtask membership |
 | `PUT` | `/api/todos/:todoId/moderators` | Replace moderators (`{ "moderatorIds": ["..."] }`) |

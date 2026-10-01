@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { ChatRoom } from "../../../mesaging/model/chat_room_model.js";
 import { User } from "../../../profile/model/user_model.js";
 import { Todo, type ITodo, type ISubTodo, type IWorkItem, type TodoScope } from "../model/todo_model.js";
+import { TodoHistory, type TodoParticipantRole } from "../model/todo_history_model.js";
 
 type Handler = (req: Request, res: Response) => Promise<unknown>;
 const idValid = (value: string) => Types.ObjectId.isValid(value);
@@ -73,6 +74,7 @@ function publicTodo(todo: ITodo, userId: string) {
         title: todo.title,
         description: todo.description,
         scope: todo.scope,
+        status: todo.status,
         creatorId: todo.creator.toString(),
         memberIds: idsOf(todo.memberIds),
         moderatorIds: idsOf(todo.moderatorIds),
@@ -84,6 +86,7 @@ function publicTodo(todo: ITodo, userId: string) {
         )),
         createdAt: todo.createdAt,
         updatedAt: todo.updatedAt,
+        endedAt: todo.endedAt,
     };
 }
 
@@ -97,7 +100,7 @@ async function getTodo(req: Request, res: Response) {
     return res.status(200).json({ todo: publicTodo(todo, userId) });
 }
 
-async function loadTodo(req: Request, res: Response) {
+async function loadTodo(req: Request, res: Response, allowEnded = false) {
     const todoId = routeParam(req, "todoId");
     if (!idValid(todoId)) {
         res.status(400).json({ message: "Invalid todo ID" });
@@ -111,6 +114,10 @@ async function loadTodo(req: Request, res: Response) {
     const userId = currentUserId(req);
     if (!todo.memberIds.some((id) => sameId(id, userId))) {
         res.status(403).json({ message: "You are not a member of this todo" });
+        return undefined;
+    }
+    if (!allowEnded && todo.status === "ended") {
+        res.status(409).json({ message: "This todo has ended and is read-only" });
         return undefined;
     }
     return todo;
@@ -148,6 +155,17 @@ function subTodoRoomMembers(todo: ITodo, subTodo: ISubTodo) {
     return [todo.creator.toString(), ...idsOf(todo.moderatorIds), ...idsOf(subTodo.memberIds), ...idsOf(subTodo.moderatorIds)];
 }
 
+function participantRoles(todo: ITodo, userId: string): TodoParticipantRole[] {
+    const roles: TodoParticipantRole[] = [];
+    if (sameId(todo.creator, userId)) roles.push("creator");
+    if (todo.moderatorIds.some((id) => sameId(id, userId))) roles.push("moderator");
+    if (!sameId(todo.creator, userId) && todo.memberIds.some((id) => sameId(id, userId)) && !roles.includes("moderator")) roles.push("member");
+    if (todo.subtodos.some((subTodo) => subTodo.moderatorIds.some((id) => sameId(id, userId)))) roles.push("subtodo_moderator");
+    if (todo.subtodos.some((subTodo) => subTodo.memberIds.some((id) => sameId(id, userId)))) roles.push("subtodo_member");
+    if (roles.length === 0) roles.push("member");
+    return roles;
+}
+
 export const createTodo = endpoint(async (req, res) => {
     const { title, description = "", scope = "personal", memberIds = [], workItems = [] } = req.body as {
         title?: string; description?: string; scope?: TodoScope; memberIds?: unknown; workItems?: unknown;
@@ -167,7 +185,7 @@ export const createTodo = endpoint(async (req, res) => {
     try {
         const todo = await Todo.create({
             title: title.trim(), description: description.trim(), scope, creator: userId,
-            memberIds: members, moderatorIds: [], chatRoom: roomId,
+            memberIds: members, historyUserIds: members, moderatorIds: [], chatRoom: roomId,
             workItems: (workItems as string[]).map((item) => ({ title: item.trim() })),
         });
         return res.status(201).json({ todo: publicTodo(todo, userId) });
@@ -179,8 +197,64 @@ export const createTodo = endpoint(async (req, res) => {
 
 export const listTodos = endpoint(async (req, res) => {
     const userId = currentUserId(req);
-    const todos = await Todo.find({ memberIds: userId }).sort({ updatedAt: -1 });
+    const todos = await Todo.find({ memberIds: userId, status: "active" }).sort({ updatedAt: -1 });
     return res.status(200).json({ todos: todos.map((todo) => publicTodo(todo, userId)) });
+});
+
+export const endTodo = endpoint(async (req, res) => {
+    const todo = await loadTodo(req, res, true);
+    if (!todo) return;
+    const userId = currentUserId(req);
+    if (!sameId(todo.creator, userId)) return res.status(403).json({ message: "Only the todo creator can end it" });
+
+    if (todo.status !== "ended") {
+        const endedAt = new Date();
+        const ended = await Todo.findOneAndUpdate(
+            { _id: todo._id, status: "active", creator: userId },
+            { $set: { status: "ended", endedAt, endedBy: userId } },
+            { new: true },
+        );
+        if (!ended) return res.status(409).json({ message: "Todo has already ended" });
+        todo.status = ended.status;
+        todo.endedAt = ended.endedAt;
+        todo.endedBy = ended.endedBy;
+    }
+
+    const participantIds = new Set([
+        todo.creator.toString(),
+        ...idsOf(todo.historyUserIds ?? todo.memberIds),
+        ...todo.subtodos.flatMap((subTodo) => [...idsOf(subTodo.memberIds), ...idsOf(subTodo.moderatorIds)]),
+    ]);
+    const endedAt = todo.endedAt ?? new Date();
+    const endedBy = todo.endedBy ?? todo.creator;
+    await Promise.all(Array.from(participantIds, async (participantId) => {
+        await TodoHistory.updateOne(
+            { todoId: todo._id, userId: participantId },
+            { $setOnInsert: {
+                todoId: todo._id,
+                userId: participantId,
+                roles: participantRoles(todo, participantId),
+                endedBy,
+                endedAt,
+                snapshot: publicTodo(todo, participantId),
+            } },
+            { upsert: true },
+        );
+    }));
+    return res.status(200).json({ message: "Todo ended and participant history saved", endedAt });
+});
+
+export const listTodoHistory = endpoint(async (req, res) => {
+    const userId = currentUserId(req);
+    const history = await TodoHistory.find({ userId }).sort({ endedAt: -1 }).lean();
+    return res.status(200).json({ history: history.map((entry) => ({
+        id: entry._id.toString(),
+        todoId: entry.todoId.toString(),
+        roles: entry.roles,
+        endedBy: entry.endedBy.toString(),
+        endedAt: entry.endedAt,
+        todo: entry.snapshot,
+    })) });
 });
 
 export const getTodoById = endpoint(getTodo);
@@ -203,7 +277,7 @@ export const updateTodo = endpoint(async (req, res) => {
 });
 
 export const deleteTodo = endpoint(async (req, res) => {
-    const todo = await loadTodo(req, res);
+    const todo = await loadTodo(req, res, true);
     if (!todo) return;
     if (!sameId(todo.creator, currentUserId(req))) return res.status(403).json({ message: "Only the todo creator can delete it" });
     const roomIds = [todo.chatRoom, ...todo.subtodos.map((subTodo) => subTodo.chatRoom)].filter((id): id is Types.ObjectId => Boolean(id));
@@ -220,6 +294,7 @@ export const addTodoMember = endpoint(async (req, res) => {
     if (!idValid(memberId)) return res.status(400).json({ message: "A valid userId is required" });
     if (!await User.exists({ _id: memberId })) return res.status(404).json({ message: "User not found" });
     if (!todo.memberIds.some((id) => sameId(id, memberId))) todo.memberIds.push(new Types.ObjectId(memberId));
+    if (!todo.historyUserIds.some((id) => sameId(id, memberId))) todo.historyUserIds.push(new Types.ObjectId(memberId));
     await todo.save();
     if (todo.chatRoom) await syncRoomMembers(todo.chatRoom, idsOf(todo.memberIds));
     return res.status(200).json({ todo: publicTodo(todo, currentUserId(req)) });
@@ -324,6 +399,9 @@ export const setSubTodoMembers = endpoint(async (req, res) => {
     const { memberIds } = req.body as { memberIds?: unknown };
     if (!idsValid(memberIds) || memberIds.some((id) => !todo.memberIds.some((member) => sameId(member, id)))) return res.status(400).json({ message: "Subtask members must be members of the parent group todo" });
     subTodo.memberIds = Array.from(new Set(memberIds)).map((id) => new Types.ObjectId(id)) as typeof subTodo.memberIds;
+    for (const memberId of memberIds) {
+        if (!todo.historyUserIds.some((id) => sameId(id, memberId))) todo.historyUserIds.push(new Types.ObjectId(memberId));
+    }
     subTodo.moderatorIds = subTodo.moderatorIds.filter((id) => subTodo.memberIds.some((member) => sameId(member, id.toString()))) as typeof subTodo.moderatorIds;
     await todo.save();
     await syncRoomMembers(subTodo.chatRoom, subTodoRoomMembers(todo, subTodo));

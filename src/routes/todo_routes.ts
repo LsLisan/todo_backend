@@ -10,7 +10,9 @@ import {
     deleteSubTodoWorkItem,
     deleteTodo,
     deleteTodoWorkItem,
+    endTodo,
     getTodoById,
+    listTodoHistory,
     listTodos,
     removeTodoMember,
     setSubTodoMembers,
@@ -27,9 +29,11 @@ router.use(requireAuth);
 
 router.post("/", createTodo);
 router.get("/", listTodos);
+router.get("/history", listTodoHistory);
 router.get("/:todoId", getTodoById);
 router.patch("/:todoId", updateTodo);
 router.delete("/:todoId", deleteTodo);
+router.post("/:todoId/end", endTodo);
 
 router.post("/:todoId/members", addTodoMember);
 router.delete("/:todoId/members/:userId", removeTodoMember);
